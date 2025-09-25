@@ -1,0 +1,58 @@
+<div class="relative min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm text-center">
+        <h1 class="font-cinzel text-5xl md:text-6xl font-bold mb-10 text-glow">Hollow Delivery</h1>
+
+        <form id="login-form" class="flex flex-col gap-6">
+            <div>
+                <input type="email" class="hollow-input w-full p-3 rounded-md text-center tracking-wider" placeholder="Tu correo" required>
+            </div>
+            <div>
+                <input type="password" class="hollow-input w-full p-3 rounded-md text-center tracking-wider" placeholder="Contraseña" required>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="hollow-btn font-cinzel text-2xl font-bold py-2 px-6 relative">
+                    Iniciar Sesión
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-8">
+             <button (click)="openModal()" class="hollow-btn font-cinzel text-lg py-2 px-6 relative">
+                ✨ Consultar el Menú del Nido
+            </button>
+        </div>
+    </div>
+
+    <footer class="absolute bottom-4 text-gray-500 text-sm">
+        Creado en los páramos de Hallownest.
+    </footer>
+</div>
+
+<!-- Thematic Menu Modal -->
+<div *ngIf="isModalVisible" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+        (click)="closeModal()"
+        (keyup.enter)="closeModal()"
+        (keyup.escape)="closeModal()"
+        tabindex="0"
+        role="button"
+        aria-label="Cerrar modal"
+        class="modal-overlay absolute inset-0 bg-black bg-opacity-75">
+    </div>
+
+    <div class="modal-content relative bg-gray-900 bg-opacity-80 border border-gray-600 rounded-lg shadow-2xl w-full max-w-md p-6 text-white overflow-y-auto">
+        <h2 class="font-cinzel text-3xl text-glow text-center mb-6">El Festín de Hoy</h2>
+
+        <div class="space-y-4 text-gray-300">
+             <div *ngIf="isLoading" class="flex justify-center items-center h-32">
+                <div class="loader"></div>
+            </div>
+            <!-- Usamos [innerHTML] para renderizar el HTML que viene de la API -->
+            <div *ngIf="!isLoading" [innerHTML]="menuContent"></div>
+        </div>
+
+        <button (click)="closeModal()" class="absolute top-3 right-4 text-gray-400 hover:text-white transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+    </div>
+</div>

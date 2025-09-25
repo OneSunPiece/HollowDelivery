@@ -1,12 +1,13 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component } from '@angular/core';
+import { LoginComponent } from './login/login'; // Importa el componente
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  standalone: true,
+  imports: [LoginComponent], // Añádelo a los imports
   templateUrl: './app.html',
-  styleUrl: './app.css',
+  styleUrl: './app.css'
 })
-export class App {
-  protected readonly title = signal('frontend');
+export class AppComponent {
+  title = 'hollow-delivery';
 }

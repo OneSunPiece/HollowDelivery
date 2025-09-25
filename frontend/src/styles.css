@@ -1,1 +1,28 @@
-/* You can add global styles to this file, and also import other style files */
+/* Importa la fuente de Google Fonts aquí */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos que aplican a toda la app */
+body {
+    font-family: 'Inter', sans-serif;
+    overflow: hidden; /* Oculta las barras de scroll */
+    background-color: #000; /* Fondo negro por defecto */
+    color: #fff;
+}
+
+/* Estilos para el video de fondo */
+#bg-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+    object-fit: cover;
+}
