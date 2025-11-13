@@ -2,51 +2,281 @@
 
 ## Project Overview
 
-Angular 20 SSR application for "Hollow Delivery" - a Hollow Knight-themed food delivery service with a gothic aesthetic. Currently implements a login page with Gemini AI-powered menu generation.
+Angular 20 SSR application for "Hollow Delivery" - a Hollow Knight-themed food delivery service with a gothic aesthetic.
+
+**Current Implementation Status**:
+- ✅ Sistema de autenticación por roles (repartidor/vendedor/cliente)
+- ✅ Feed de pedidos disponibles con mock data
+- ✅ Detalle de pedido con información completa
+- ✅ Mis pedidos con filtros por estado
+- ✅ Flujo de aceptar/rechazar pedidos
+- ✅ Cambio de estados (aceptado → en camino → entregado)
+- ⏳ UI de vendedor y cliente (pendiente)
+- ⏳ Integración con backend real (pendiente)
 
 ## Architecture & Structure
 
-**Standalone Components Pattern**: This project uses Angular's standalone components (no NgModules except empty placeholders in `core/`, `features/`, `shared/`). All components declare `standalone: true` and explicitly import their dependencies.
+**Standalone Components Pattern**: No NgModules (excepto placeholders vacíos). Todos los componentes con `standalone: true`.
 
 **Key Files**:
-- `src/app/app.ts` - Root component with direct component imports (not routing)
-- `src/app/app.config.ts` - Application config with zoneless change detection (`provideZonelessChangeDetection()`)
-- `src/app/app.routes.ts` - Currently empty route configuration
-- `src/environments/environment.ts` - Environment variables (API keys should be kept private)
+- `src/app/app.ts` - Root con router outlet
+- `src/app/app.config.ts` - Config con zoneless change detection
+- `src/app/app.routes.ts` - Rutas jerárquicas por rol con guards
+- `src/app/services/auth.service.ts` - Autenticación y gestión de roles
+- `src/app/services/pedido.service.ts` - Gestión de pedidos (mock data)
+- `src/app/guards/auth.guard.ts` - Protección de rutas por rol
 
-**SSR Configuration**: Project has full server-side rendering setup via `@angular/ssr` with Express server (`src/server.ts`).
+**Project Structure**:
+```
+src/app/
+├── pages/              # Componentes de página
+│   ├── home/          # Feed de pedidos (repartidor)
+│   ├── mis-pedidos/   # Lista de pedidos activos
+│   └── pedido-detalle/ # Detalle completo de pedido
+├── components/         # Componentes reutilizables
+│   └── pedido-card/   # Tarjeta de pedido con accesibilidad
+├── models/            # Interfaces TypeScript estrictas
+│   └── pedido.model.ts # Pedido, Cliente, NegocioDetalle, etc.
+├── services/          # Lógica de negocio
+│   ├── auth.service.ts  # Auth + localStorage + signals
+│   └── pedido.service.ts # CRUD pedidos con RxJS
+├── guards/            # Route guards
+│   └── auth.guard.ts  # Verificación de auth y rol
+└── login/            # Feature de login con email-based roles
+```
 
 ## Critical Conventions
 
-### Template Syntax (Angular 20+)
-Use **block template syntax** (not structural directives):
-```html
-<!-- ✅ Correct - Use @if, @for, @switch -->
-<div *@If="condition">...</div>
-<div *@For="item of items; track item.id">...</div>
+### Authentication & Roles
 
-<!-- ❌ Avoid - Old syntax -->
-<div *ngIf="condition">...</div>
-<div *ngFor="let item of items">...</div>
+**Role Detection** (email-based):
+```typescript
+// En AuthService
+private determineRole(email: string): 'repartidor' | 'vendedor' | 'cliente' {
+  if (email.includes('repartidor')) return 'repartidor';
+  if (email.includes('vendedor')) return 'vendedor';
+  return 'cliente';
+}
+```
+
+**Route Protection**:
+```typescript
+// En app.routes.ts
+{
+  path: 'repartidor',
+  canActivate: [authGuard],
+  data: { role: 'repartidor' }, // Guard valida este rol
+  children: [...]
+}
+```
+
+**Test Credentials**:
+- `repartidor@hollow.com` → repartidor
+- `vendedor@hollow.com` → vendedor
+- `cualquier@otro.com` → cliente
+
+### State Management with Signals
+
+**Service Pattern**:
+```typescript
+// AuthService usa signals para estado reactivo
+export class AuthService {
+  private userSignal = signal<User | null>(null);
+  readonly user = this.userSignal.asReadonly();
+  
+  get isAuthenticated(): boolean {
+    return this.user() !== null;
+  }
+}
+```
+
+**Component Pattern**:
+```typescript
+// Components usan signals locales
+export class HomeComponent {
+  pedidos = signal<Pedido[]>([]);
+  isLoading = signal(true);
+  
+  ngOnInit() {
+    this.pedidoService.getPedidos().subscribe(data => {
+      this.pedidos.set(data);
+      this.isLoading.set(false);
+    });
+  }
+}
+```
+
+### Data Models Pattern
+
+**Strict TypeScript Interfaces** en `models/`:
+```typescript
+export interface Pedido {
+  id: string;
+  negocio: string;
+  estado: 'disponible' | 'aceptado' | 'en-camino' | 'entregado' | 'rechazado'; // Union types
+  cliente?: Cliente; // Optional nested interfaces
+  negocioDetalle?: NegocioDetalle;
+  productos?: ProductoPedido[];
+  // ... más campos
+}
+
+export interface Cliente {
+  id: string;
+  nombre: string;
+  telefono?: string;
+  // ... campos opcionales marcados con ?
+}
+```
+
+### Service Pattern (Mock Data)
+
+**Observable-based Services**:
+```typescript
+@Injectable({ providedIn: 'root' })
+export class PedidoService {
+  private mockPedidos: Pedido[] = [/* datos */];
+  
+  getPedidosDisponibles(): Observable<Pedido[]> {
+    return of(this.mockPedidos.filter(p => p.estado === 'disponible'))
+      .pipe(delay(800)); // Simula latencia de red
+  }
+  
+  getPedidoById(id: string): Observable<Pedido | null> {
+    const pedido = this.mockPedidos.find(p => p.id === id);
+    return of(pedido || null).pipe(delay(500));
+  }
+  
+  actualizarEstadoPedido(id: string, estado: Pedido['estado']): Observable<boolean> {
+    const pedido = this.mockPedidos.find(p => p.id === id);
+    if (pedido) {
+      pedido.estado = estado;
+      return of(true).pipe(delay(500));
+    }
+    return of(false).pipe(delay(500));
+  }
+}
+```
+
+### Template Syntax (Angular 20+)
+
+**IMPORTANTE**: Usar sintaxis de bloques cuando sea apropiado, pero `*ngIf` y `*ngFor` siguen siendo válidos:
+
+```html
+<!-- ✅ Sintaxis de bloques moderna -->
+@if (condition) {
+  <div>Contenido</div>
+} @else {
+  <div>Alternativo</div>
+}
+
+@for (item of items; track item.id) {
+  <div>{{ item.name }}</div>
+}
+
+<!-- ✅ También válido - directivas estructurales -->
+<div *ngIf="condition">Contenido</div>
+<div *ngFor="let item of items">{{ item.name }}</div>
+```
+
+### Component Structure
+
+**Naming**: Usar `.ts` para componentes (no `.component.ts`)
+
+**Dependency Injection**: Usar `inject()` pattern:
+```typescript
+export class MiComponente {
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+}
+```
+
+**Change Detection**: Usar `OnPush` para optimización:
+```typescript
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+```
+
+**Iconos**: SVG inline (no librerías externas) para SSR:
+```html
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" 
+     fill="none" stroke="currentColor" stroke-width="2">
+  <path d="..."/>
+</svg>
+```
+
+### Navigation
+
+**RouterLink para navegación declarativa**:
+```html
+<!-- ✅ Preferido -->
+<button routerLink="/repartidor/mis-pedidos">Mis Pedidos</button>
+
+<!-- ✅ También válido para lógica compleja -->
+<button (click)="navegarConLogica()">Navegar</button>
+```
+
+**Programmatic Navigation**:
+```typescript
+irADetalle(id: string): void {
+  this.router.navigate(['/repartidor/pedido', id]);
+}
 ```
 
 ### Styling Stack
-- **TailwindCSS** for utility classes (configured in `tailwind.config.js`)
-- **Custom font**: `font-cinzel` (Cinzel from Google Fonts) for headings
-- **Theme**: Gothic/dark aesthetic with custom classes: `hollow-input`, `hollow-btn`, `text-glow`, `modal-overlay`
-- Global styles in `src/styles.css` include video background setup 
 
-### Component Structure
-- **Naming**: Components use `.ts`/`.html`/`.css` (not `.component.ts`)
-- **Selectors**: Use `app-` prefix with kebab-case (enforced by ESLint)
-- **Dependency injection**: Use `inject()` function pattern (see `login.ts`: `private http = inject(HttpClient)`)
+**TailwindCSS** + Custom Classes:
+```css
+/* Clases custom en component styles */
+.hollow-card {
+  transition: all 0.3s ease-out;
+}
 
-### API Integration Pattern
-**Gemini AI Integration** (see `src/app/login/login.ts`):
-- API key from `environment.geminiApiKey`
-- Direct HTTP calls to Google Generative AI endpoint
-- Response parsing: `result.candidates?.[0]?.content?.parts?.[0]?.text`
-- HTML sanitization via `[innerHTML]` binding with manual string manipulation
+.text-glow {
+  text-shadow: 0 0 5px #fff, 0 0 10px #c0c0c0;
+}
+
+.hollow-btn {
+  /* Estilos de botón temático */
+}
+
+.hollow-nav-btn {
+  /* Botón de navegación del footer */
+}
+```
+
+**Theme Colors**:
+- Backgrounds: `bg-black`, `bg-gray-900`, `bg-gray-800`
+- Borders: `border-gray-700`, `border-cyan-400`
+- Text: `text-white`, `text-gray-400`, `text-cyan-400`
+- Accents: cyan/teal para activos, yellow para recompensas
+
+**Typography**:
+- Headers: `font-cinzel` (Cinzel serif)
+- Body: Inter sans-serif
+- Glow effect: clase `.text-glow`
+
+### Accessibility
+
+**SIEMPRE incluir**:
+```html
+<div 
+  (click)="action()"
+  (keydown.enter)="action()"
+  (keydown.space)="action()"
+  tabindex="0"
+  role="button"
+>
+  Contenido clickeable
+</div>
+```
+
+**ARIA labels cuando sea necesario**:
+```html
+<button aria-label="Cerrar sesión" title="Cerrar sesión">
+  <svg>...</svg>
+</button>
+```
 
 ## Development Workflow
 
@@ -54,71 +284,25 @@ Use **block template syntax** (not structural directives):
 ```bash
 npm start              # Dev server (http://localhost:4200)
 npm run build          # Production build
-npm run serve:ssr      # Run SSR server after build
+npm run serve:ssr      # Run SSR server
 npm run lint           # ESLint check
-npm run lint:fix       # Auto-fix linting issues
-npm run format         # Prettier formatting (100 char width, single quotes)
-npm test               # Karma unit tests
+npm run lint:fix       # Auto-fix
+npm run format         # Prettier
+npm test               # Unit tests
 ```
 
-### Code Quality
-- **TypeScript**: Strict mode enabled (`strict: true`, `noImplicitReturns`, `noFallthroughCasesInSwitch`)
-- **Prettier**: 100 char width, single quotes, Angular HTML parser
-- **ESLint**: Angular-specific rules with TypeScript stylistic configs
-
-### Adding New Components
+### Adding Components
 ```bash
-ng generate component component-name
+ng generate component pages/nombre-componente
 ```
-Will scaffold with standalone component by default.
 
-## Integration Points
-
-**External APIs**:
-- Google Gemini AI (`generativelanguage.googleapis.com`) - Menu content generation
-- Future backend: `environment.apiUrl` points to `http://localhost:3000`
-
-**HTTP Client**: Configured globally via `provideHttpClient()` in `app.config.ts`
-
-## Theme & Branding
-
-### Design Philosophy
-Hollow Delivery draws inspiration from the atmospheric, hand-drawn world of Hollow Knight. Every UI element should evoke the game's gothic beauty, melancholic tone, and insect-kingdom aesthetic.
-
-### Visual Language
-
-**Color Palette**:
-- Primary backgrounds: Deep blacks (`#000`) and dark grays (`#1a1a1a`, `#2d2d2d`)
-- Accents: Pale blues (soul energy), soft whites (mask fragments), muted purples (void)
-- Borders: Gray tones with subtle glows (`border-gray-600` with `text-glow` class)
-- Error states: Muted reds (`text-red-400`) - avoid bright colors
-
-**Typography**:
-- Headers: `font-cinzel` (Cinzel serif) - evokes carved stone tablets
-- Body text: Inter sans-serif for readability
-- Tracking: Use `tracking-wider` for inputs and important text to create gravitas
-
-**Custom CSS Classes** (defined in component CSS files):
-- `.hollow-input` - Translucent input fields with subtle borders
-- `.hollow-btn` - Gothic button style with hover effects
-- `.text-glow` - Soft luminescent text effect (like soul energy)
-- `.modal-overlay` - Semi-transparent dark backdrop with blur
-
-### UI/UX Patterns
-
-**Modal Dialogs**:
-```html
-<!-- Pattern: Overlay + centered card with close button -->
-<div *@If="isVisible" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-  <div class="modal-overlay absolute inset-0 bg-black bg-opacity-75" (click)="close()"></div>
-  <div class="modal-content relative bg-gray-900 bg-opacity-80 border border-gray-600 rounded-lg shadow-2xl">
-    <!-- Content -->
-    <button class="absolute top-3 right-4 text-gray-400 hover:text-white">
-      <!-- X icon -->
-    </button>
-  </div>
-</div>
-```
+### Debugging Navigation
+Si la navegación no funciona:
+1. Verificar que el componente esté importado en routes
+2. Usar `routerLink` en lugar de `(click)` cuando sea posible
+3. Agregar `console.log` en métodos de navegación
+4. Verificar que el guard no esté bloqueando
+5. Hard refresh del browser (Cmd+Shift+R)
 
 **Form Elements**:
 ```html
@@ -191,6 +375,8 @@ Before running, developers must:
 
 ## Current Limitations
 
-- Routes configuration exists but is empty (`app.routes.ts`)
+- Only login and home pages are implemented
+- Authentication flow is not connected yet (login doesn't navigate to home)
+- Mock data only - no real backend integration
 - Module files (`core.module.ts`, `features.module.ts`, `shared.module.ts`) are placeholders
-- Only login page is implemented; no actual authentication flow yet
+- Navigation between pages needs guard implementation for authentication

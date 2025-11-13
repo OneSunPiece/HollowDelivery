@@ -1,17 +1,62 @@
 <div class="relative min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="w-full max-w-sm text-center">
+    <!-- El video de fondo vive aquí para que esté detrás de todo en el login -->
+    <div class="absolute inset-0 z-0 overflow-hidden">
+        <video id="bg-video" autoplay loop muted playsinline>
+            <!-- El video ahora está en la carpeta 'public' -->
+            <source src="Voidheart.mp4" type="video/mp4">
+            Tu navegador no soporta videos HTML5.
+        </video>
+        <div class="absolute inset-0 bg-black/30"></div>
+    </div>
+
+    <div class="w-full max-w-sm text-center relative z-10">
         <h1 class="font-cinzel text-5xl md:text-6xl font-bold mb-10 text-glow">Hollow Delivery</h1>
 
-        <form id="login-form" class="flex flex-col gap-6">
+        <form id="login-form" class="flex flex-col gap-6" (ngSubmit)="handleSubmit($event)">
             <div>
-                <input type="email" class="hollow-input w-full p-3 rounded-md text-center tracking-wider" placeholder="Tu correo" required>
+                <input
+                    type="email"
+                    [(ngModel)]="email"
+                    name="email"
+                    class="hollow-input w-full p-3 rounded-md text-center tracking-wider"
+                    placeholder="Tu correo"
+                    required
+                    [disabled]="isLoggingIn()">
             </div>
             <div>
-                <input type="password" class="hollow-input w-full p-3 rounded-md text-center tracking-wider" placeholder="Contraseña" required>
+                <input
+                    type="password"
+                    [(ngModel)]="password"
+                    name="password"
+                    class="hollow-input w-full p-3 rounded-md text-center tracking-wider"
+                    placeholder="Contraseña"
+                    required
+                    [disabled]="isLoggingIn()">
             </div>
+
+            <!-- Mensaje de error -->
+            @if (loginError()) {
+                <div class="text-red-400 text-sm text-center animate-pulse">
+                    {{ loginError() }}
+                </div>
+            }
+
+            <!-- Ayuda de roles -->
+            <div class="text-xs text-gray-400 text-center">
+                <p>Prueba con:</p>
+                <p><strong>repartidor@hollow.com</strong> para repartidor</p>
+            </div>
+
             <div class="mt-4">
-                <button type="submit" class="hollow-btn font-cinzel text-2xl font-bold py-2 px-6 relative">
-                    Iniciar Sesión
+                <button
+                    type="submit"
+                    class="hollow-btn font-cinzel text-2xl font-bold py-2 px-6 relative w-full"
+                    [disabled]="isLoggingIn()">
+                    @if (isLoggingIn()) {
+                        <span>Ingresando...</span>
+                    } @else {
+                        <span>Iniciar Sesión</span>
+                    }
                 </button>
             </div>
         </form>
@@ -23,7 +68,7 @@
         </div>
     </div>
 
-    <footer class="absolute bottom-4 text-gray-500 text-sm">
+    <footer class="absolute bottom-4 text-gray-500 text-sm z-10">
         Creado en los páramos de Hallownest.
     </footer>
 </div>
