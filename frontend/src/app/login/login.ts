@@ -17,7 +17,7 @@ interface GeminiResponse {
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule], // Removemos HttpClientModule ya que está configurado globalmente
+  imports: [CommonModule],
   templateUrl: './login.html',
   styleUrl: './login.css'
 })
