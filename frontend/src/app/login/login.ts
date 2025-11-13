@@ -1,6 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { AuthService } from '../services/auth.service';
 import { environment } from '../../environments/environment'; // Para la API Key
 
 // Definir interfaces para la API de Gemini
@@ -17,16 +20,24 @@ interface GeminiResponse {
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './login.html',
-  styleUrl: './login.css'
+  styleUrl: './login.css',
 })
 export class LoginComponent {
   isModalVisible = false;
   isLoading = false;
   menuContent = '';
 
-  private http = inject(HttpClient);
+  // Signals para el formulario de login
+  email = signal<string>('');
+  password = signal<string>('');
+  loginError = signal<string>('');
+  isLoggingIn = signal<boolean>(false);
+
+  private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
 
   openModal(): void {
     this.isModalVisible = true;
@@ -40,6 +51,60 @@ export class LoginComponent {
   onKeyUp(event: KeyboardEvent): void {
     if (event.key === 'Enter' || event.key === 'Escape') {
       this.closeModal();
+    }
+  }
+
+  // Lógica de login y navegación por rol
+  handleSubmit(event: Event): void {
+    event.preventDefault();
+
+    const emailValue = this.email();
+    const passwordValue = this.password();
+
+    // Validación básica
+    if (!emailValue || !passwordValue) {
+      this.loginError.set('Por favor, completa todos los campos');
+      return;
+    }
+
+    this.isLoggingIn.set(true);
+    this.loginError.set('');
+
+    // Simular delay de autenticación
+    setTimeout(() => {
+      // Usar el AuthService para hacer login
+      const success = this.authService.login(emailValue, passwordValue);
+
+      if (success) {
+        const role = this.authService.userRole;
+        this.navigateByRole(role);
+      } else {
+        this.loginError.set('Credenciales incorrectas');
+      }
+
+      this.isLoggingIn.set(false);
+    }, 800);
+  }
+
+  private navigateByRole(role: string | null): void {
+    switch (role) {
+      case 'repartidor':
+        this.router.navigate(['/repartidor/home']);
+        break;
+      case 'vendedor':
+        // TODO: Implementar cuando se cree el flujo del vendedor
+        this.loginError.set('El portal de vendedores aún no está disponible');
+        this.isLoggingIn.set(false);
+        break;
+      case 'cliente':
+        // TODO: Implementar cuando se cree el flujo del cliente
+        this.loginError.set('El portal de clientes aún no está disponible');
+        this.isLoggingIn.set(false);
+        break;
+      default:
+        this.loginError.set('Error al determinar el tipo de usuario');
+        this.isLoggingIn.set(false);
+        break;
     }
   }
 

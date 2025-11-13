@@ -1,12 +1,12 @@
+// src/app/app.ts
 import { Component } from '@angular/core';
-import { LoginComponent } from './login/login'; // Importa el componente
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [LoginComponent], // Añádelo a los imports
-  templateUrl: './app.html',
-  styleUrl: './app.css'
+  imports: [RouterOutlet],
+  template: '<router-outlet></router-outlet>',
 })
 export class AppComponent {
   title = 'hollow-delivery';
