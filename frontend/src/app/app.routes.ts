@@ -53,9 +53,12 @@ export const routes: Routes = [
   // ============================================
   {
     path: 'vendedor',
-    children: [
-      // TODO: Implementar rutas del vendedor
-    ],
+    canActivate: [authGuard],
+    data: { role: 'vendedor' },
+    loadComponent: () =>
+      import('./vista-vendedor/vista-vendedor.component').then(
+        (m) => m.VistaVendedorComponent
+      ),
   },
 
   // ============================================

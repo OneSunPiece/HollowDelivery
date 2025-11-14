@@ -93,8 +93,8 @@ export class LoginComponent {
         break;
       case 'vendedor':
         // TODO: Implementar cuando se cree el flujo del vendedor
-        this.loginError.set('El portal de vendedores aún no está disponible');
-        this.isLoggingIn.set(false);
+        this.router.navigate(['/vendedor']);
+      break;
         break;
       case 'cliente':
         // TODO: Implementar cuando se cree el flujo del cliente
